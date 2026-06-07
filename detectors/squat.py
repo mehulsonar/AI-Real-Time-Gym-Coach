@@ -1,4 +1,3 @@
-import streamlit as st 
 from core.base_exercise import BaseExercise
 
 class SquatDetector(BaseExercise):
