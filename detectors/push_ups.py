@@ -1,53 +1,92 @@
 from core.base_exercise import BaseExercise
 
 class PushUpsDetector(BaseExercise):
-    DOWN_THRESHOLD = 100
+    DOWN_THRESHOLD = 90
     UP_THRESHOLD = 160
-    MIN_VISABILITY = 0.7
-
-    LEFT_ELBOW = 26
-    LEFT_HIP = 27
-    RIGHT_ELBOW = 23
-    RIGHT_HIP = 24
-
+    MIN_VBISABILITY = 0.7
+    HIP_SAG_TOLERANCE = 0.08
+    
+    LEFT_SHOULDER = 11
+    LEFT_ELBOW = 13
+    LEFT_WRIST = 15
+    LEFT_HIP = 23
+    LEFT_KNEE = 25
+    LEFT_ANKLE = 27
+    RIGHT_SHOULDER = 12
+    RIGHT_ELBOW = 14
+    RIGHT_WRIST = 16
+    RIGHT_HIP = 24                                                                                                                      
+    RIGHT_KNEE = 26
+    RIGHT_ANKLE = 28
+    
     def __init__(self):
         super().__init__()
-
-    def reset(self):
+        
+    def reset(self) -> None:
         self.reps = 0
         self.stage = None
-
-    def process(self, landmarks):
-        left_elbow_angle = self.calculate_angle(
-            self.get_point(landmarks, self.LEFT_ELBOW),
-            self.get_point(landmarks, self.LEFT_HIP)
-        )
-
-        right_elbow_angle = self.calculate_angle(
-            self.get_point(landmarks, self.RIGHT_ELBOW),
-            self.get_point(landmarks, self.RIGHT_HIP)
-        )
-
-        left_vis = landmarks[self.LEFT_ELBOW].visability
-        right_vis = landmarks[self.RIGHT_ELBOW].visability
-
+        
+    def process(self, landmarks):      
+        left_vis = landmarks[self.LEFT_ELBOW].visibility
+        right_vis = landmarks[self.RIGHT_ELBOW].visibility
+        
         if left_vis >= right_vis:
-            elbow_angle = left_elbow_angle
-            elbow_idx, hip_idx = self.LEFT_ELBOW, self.LEFT_HIP
+            shoulder_idx = self.LEFT_SHOULDER
+            wrist_idx = self.LEFT_WRIST
+            hip_idx = self.LEFT_HIP
+            ankle_idx = self.LEFT_ANKLE
         else:
-            elbow_angle = right_elbow_angle
-            elbow_idx, hip_idx = self.RIGHTT_ELBOW, self.RIGHT_HIP
-
-        key_landmark_visible = landmarks[elbow_idx].visibility >= self.MIN_VISABILITY and landmarks[hip_idx].visibility
-
-        if key_landmark_visible:
-            if elbow_angle < self.DOWN_THRESHOLD:
-                self.stage =  "down"
+            shoulder_idx = self.RIGHT_SHOULDER
+            wrist_idx = self.RIGHT_WRIST
+            hip_idx = self.RIGHT_HIP
+            ankle_idx = self.RIGHT_ANKLE
             
-            if elbow_angle >= self.UP_THRESHOLD and self.stage == "down":
+        elbow_angle = self.calculate_angle(
+            self.get_point(landmarks, shoulder_idx),
+            self.get_point(landmarks, wrist_idx),
+            self.get_point(landmarks, ankle_idx)
+        )
+        
+        body_angle = self.calculate_angle(
+            self.get_point(landmarks, shoulder_idx),
+            self.get_point(landmarks, hip_idx),
+            self.get_point(landmarks, ankle_idx),
+        )
+        
+        shoulder_y = landmarks[shoulder_idx].y
+        ankle_y = landmarks[ankle_idx].y
+        hip_y = landmarks[hip_idx].y
+        
+        expected_hip_y = (shoulder_y + ankle_y) / 2
+        hip_deviation = hip_y - expected_hip_y
+        
+        key_landmarks_visible = landmarks[shoulder_idx].visibility > self.MIN_VBISABILITY and landmarks[wrist_idx].visibility > self.MIN_VBISABILITY and landmarks[ankle_idx].visibility > self.MIN_VBISABILITY
+        
+        if key_landmarks_visible:
+            if elbow_angle < self.UP_THRESHOLD:
+                self.stage = "down"
+            
+            if elbow_angle > self.DOWN_THRESHOLD and self.stage == "down":
                 self.stage = "up"
                 self.reps += 1
+                
+        if body_angle > 160:
+            body_alignment = "Straight"
+        elif body_angle > 140:
+            body_alignment = "Slight Bend"
+        else:
+            body_alignment = "Poor Form"
             
-            # if self.stage == "down":
-        # Hip Position
-        # body alignment
+        if abs(hip_deviation) <= self.HIP_SAG_TOLERANCE:
+            hip_status = "LEVEL"
+        elif hip_deviation > self.HIP_SAG_TOLERANCE:
+            hip_status = "SAGGING"
+        else:
+            hip_status = "PICKED UP"
+            
+        return {
+            "reps": self.reps,
+            "elbow_angle": int(elbow_angle),
+            "body_alignment": body_alignment,
+            "hip_status": hip_status
+        }
