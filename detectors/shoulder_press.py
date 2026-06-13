@@ -10,7 +10,7 @@ class ShoulderPressDetector(BaseExercise):
     LEFT_WRIST = 15
     LEFT_HIP = 23
     LEFT_KNEE = 25
-    RIGHT_SHOLDER = 12
+    RIGHT_SHOULDER = 12
     RIGHT_ELBOW = 14
     RIGHT_WRIST = 16
     RIGHT_HIP = 24
@@ -62,9 +62,11 @@ class ShoulderPressDetector(BaseExercise):
             extension_status = "NEARLY EXTENDED"
         elif elbow_angle >= self.DOWN_THRESHOLD:
             extension_status = "PRESSING"
+        else:
+            extension_status = "LOWERING"
 
         back_angle = self.calculate_angle(
-            self,self.get_point(landmarks, shoulder_idx),
+            self.get_point(landmarks, shoulder_idx),
             self.get_point(landmarks, hip_idx),
             self.get_point(landmarks, knee_idx)
         )

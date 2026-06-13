@@ -24,14 +24,14 @@ class SquatDetector(BaseExercise):
     def process(self, landmarks):
         left_knee_angle = self.calculate_angle(
             self.get_point(landmarks, self.LEFT_HIP),
-            self.get_point(landmarks, self.LEFT_Knee),
-            self.get_point(landmarks, self.LEFT_Ankle)
+            self.get_point(landmarks, self.LEFT_KNEE),
+            self.get_point(landmarks, self.LEFT_ANKLE)
         )
 
         right_knee_angle = self.calculate_angle(
             self.get_point(landmarks, self.RIGHT_HIP),
-            self.get_point(landmarks, self.RIGHT_Knee),
-            self.get_point(landmarks, self.RIGHT_Ankle)
+            self.get_point(landmarks, self.RIGHT_KNEE),
+            self.get_point(landmarks, self.RIGHT_ANKLE)
         )
 
         left_vis = landmarks[self.LEFT_KNEE].visibility
@@ -56,7 +56,7 @@ class SquatDetector(BaseExercise):
             if knee_angle < self.DOWN_THRESHOLD:
                 self.stage = "down"
             
-            if knee_angle >= self.UP_THRESHOLD and self.stage =="Down":
+            if knee_angle >= self.UP_THRESHOLD and self.stage == "down":
                 self.stage = "up"
                 self.reps += 1
         

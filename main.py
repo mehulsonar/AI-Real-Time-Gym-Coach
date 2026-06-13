@@ -6,6 +6,7 @@ from services.config.workout_config import EXERCISE_OPTIONS
 from services.ui.style_loader import load_css, inject_local_font, inject_webrtc_styles
 from services.persistence.exercise_repository import init_db
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
+from services.vision.exercise_video_processor import VideoProcessorClass
 
 
 def main():
@@ -126,10 +127,10 @@ def main():
                     """, unsafe_allow_html=True)
         
     else:
-        contex = webrtc_streamer(
+        context = webrtc_streamer(
             key="exercise-analysis",
             mode=WebRtcMode.SENDRECV,
-            video_processor_factory=None,
+            video_processor_factory=VideoProcessorClass,
             rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
             media_stream_constraints={
                 "video": True,
@@ -138,8 +139,16 @@ def main():
             async_processing=True
         )
 
+        if context.video_processor:
+            context.video_processor.set_exercise(st.session_state.get("plan_exercise", "Squats"))
+            latest_metrics = context.video_processor.get_latest_metrics()
+            if latest_metrics:
+                for key, value in latest_metrics.items():
+                    st.session_state[key] = value
+
+        inject_webrtc_styles()
+        
     st.markdown("### Workout History")
-    inject_webrtc_styles()
 
 if __name__ == "__main__":
     main()

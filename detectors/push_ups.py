@@ -32,19 +32,21 @@ class PushUpsDetector(BaseExercise):
         
         if left_vis >= right_vis:
             shoulder_idx = self.LEFT_SHOULDER
+            elbow_idx = self.LEFT_ELBOW
             wrist_idx = self.LEFT_WRIST
             hip_idx = self.LEFT_HIP
             ankle_idx = self.LEFT_ANKLE
         else:
             shoulder_idx = self.RIGHT_SHOULDER
+            elbow_idx = self.RIGHT_ELBOW
             wrist_idx = self.RIGHT_WRIST
             hip_idx = self.RIGHT_HIP
             ankle_idx = self.RIGHT_ANKLE
             
         elbow_angle = self.calculate_angle(
             self.get_point(landmarks, shoulder_idx),
-            self.get_point(landmarks, wrist_idx),
-            self.get_point(landmarks, ankle_idx)
+            self.get_point(landmarks, elbow_idx),
+            self.get_point(landmarks, wrist_idx)
         )
         
         body_angle = self.calculate_angle(
@@ -60,13 +62,13 @@ class PushUpsDetector(BaseExercise):
         expected_hip_y = (shoulder_y + ankle_y) / 2
         hip_deviation = hip_y - expected_hip_y
         
-        key_landmarks_visible = landmarks[shoulder_idx].visibility > self.MIN_VBISABILITY and landmarks[wrist_idx].visibility > self.MIN_VBISABILITY and landmarks[ankle_idx].visibility > self.MIN_VBISABILITY
+        key_landmarks_visible = landmarks[shoulder_idx].visibility > self.MIN_VBISABILITY and landmarks[elbow_idx].visibility > self.MIN_VBISABILITY and landmarks[wrist_idx].visibility > self.MIN_VBISABILITY
         
         if key_landmarks_visible:
-            if elbow_angle < self.UP_THRESHOLD:
+            if elbow_angle < self.DOWN_THRESHOLD:
                 self.stage = "down"
             
-            if elbow_angle > self.DOWN_THRESHOLD and self.stage == "down":
+            if elbow_angle > self.UP_THRESHOLD and self.stage == "down":
                 self.stage = "up"
                 self.reps += 1
                 

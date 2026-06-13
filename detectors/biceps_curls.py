@@ -31,27 +31,27 @@ class BicepCurlDetector(BaseExercise):
         right_vis = landmarks[self.RIGHT_ELBOW].visibility
         
         if left_vis >= right_vis:
-            shoulder_idx = self.LEFT_SHOULDER,
-            elbow_idx = self.LEFT_ELBOW,
+            shoulder_idx = self.LEFT_SHOULDER
+            elbow_idx = self.LEFT_ELBOW
             wrist_idx = self.LEFT_WRIST
         else:
-            shoulder_idx = self.RIGHT_SHOULDER,
-            elbow_idx = self.RIGHT_ELBOW,
+            shoulder_idx = self.RIGHT_SHOULDER
+            elbow_idx = self.RIGHT_ELBOW
             wrist_idx = self.RIGHT_WRIST
             
         elbow_angle = self.calculate_angle(
-            self.get_points(landmarks, shoulder_idx),
-            self.get_points(landmarks, elbow_idx),
+            self.get_point(landmarks, shoulder_idx),
+            self.get_point(landmarks, elbow_idx),
             self.get_point(landmarks, wrist_idx)
         )
         
         key_landmarks_visible = landmarks[shoulder_idx].visibility > self.MIN_VISIBILITY and landmarks[elbow_idx].visibility > self.MIN_VISIBILITY and landmarks[wrist_idx].visibility > self.MIN_VISIBILITY
         
         if key_landmarks_visible:
-            if elbow_idx < self.UP_THRESHOLD:
+            if elbow_angle < self.UP_THRESHOLD:
                 self.stage = "up"
             
-            if elbow_idx > self.DOWN_THRESHOLD and self.stage == "up":
+            if elbow_angle > self.DOWN_THRESHOLD and self.stage == "up":
                 self.stage = "down"
                 self.reps += 1
                 

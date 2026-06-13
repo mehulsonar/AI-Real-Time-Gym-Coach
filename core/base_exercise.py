@@ -8,7 +8,7 @@ class BaseExercise(ABC):
 
     def calculate_angle(self, a, b, c):
         ax, ay = a[0] - b[0], a[1] - b[1]
-        cx, cy = c[0] - b[0], c[1] - c[2]
+        cx, cy = c[0] - b[0], c[1] - b[1]
         
         dot = ax * cx + ay * cy
 
