@@ -54,11 +54,21 @@ class VideoProcessorClass(VideoProcessorBase):
         
     def set_exercise(self, exercise_type):
         with self._lock:
+            if self._exercise_type != exercise_type:
+                # Reset detector when exercise changes
+                detector = self._detectors.get(exercise_type)
+                if detector:
+                    detector.reset()
             self._exercise_type = exercise_type
             
     def get_exercise(self):
         with self._lock:
             return self._exercise_type
+    
+    def get_current_detector(self):
+        """Get the detector for the current exercise"""
+        with self._lock:
+            return self._detectors.get(self._exercise_type)
 
     def _draw_skeleton(self, img, landmarks):
         h, w = img.shape[:2]
@@ -201,22 +211,34 @@ class VideoProcessorClass(VideoProcessorBase):
         self._frame_timestamps_ms += 30
         result = self._landmarkers.detect_for_video(mp_image, self._frame_timestamps_ms)
         
-        if result.pose_landmarks:
+        pose_detected = False
+        if result.pose_landmarks and len(result.pose_landmarks) > 0:
             landmarks = result.pose_landmarks[0]
+            pose_detected = True
             
             self._draw_skeleton(image, landmarks)
             
             ex_type = self.get_exercise()
-            
             detector = self._detectors.get(ex_type)
             
             if detector:
                 metrics = detector.process(landmarks)
+                # Add pose_detected flag to metrics
+                metrics["pose_detected"] = True
                 
                 self._draw_overlays(image, metrics, ex_type)
-                
                 self.set_latest_metrics(metrics)
         else:
+            # No pose detected - store this state
+            ex_type = self.get_exercise()
+            detector = self._detectors.get(ex_type)
+            
+            if detector and self._latest_metrics:
+                # Keep previous metrics but mark pose as not detected
+                metrics = self._latest_metrics.copy()
+                metrics["pose_detected"] = False
+                self.set_latest_metrics(metrics)
+            
             self._draw_no_pose_warnings(image)
         
         return av.VideoFrame.from_ndarray(image, format="bgr24")

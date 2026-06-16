@@ -29,9 +29,21 @@ def init_db():
                         exercise_name TEXT NOT NULL,
                         reps INTEGER  NOT NULL DEFAULT 0,
                         sets INTEGER  NOT NULL DEFAULT 0,
-                        time INTEGER  NOT NULL DEFAULT 0
+                        time REAL     NOT NULL DEFAULT 0,
+                        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                      )
                      """)
+        columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(exercises)").fetchall()
+        }
+        if "created_at" not in columns:
+            conn.execute(
+                "ALTER TABLE exercises ADD COLUMN created_at TIMESTAMP"
+            )
+            conn.execute(
+                "UPDATE exercises SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"
+            )
 
 def get_user(username):
     conn = _get_connection()
@@ -61,17 +73,17 @@ def add_exercise(user_id, exercise_name, reps, sets, time):
 
     with conn:
         existing = conn.execute("""
-                                    SELECT * FROM exercise
-                                    WHERE user_id = ? AND username = ? AND Date('created_at') = Date('now')
+                                    SELECT * FROM exercises
+                                    WHERE user_id = ? AND exercise_name = ? AND Date(created_at) = Date('now')
                                 """, (user_id, exercise_name)).fetchone()
         if existing:
             conn.execute("""
-                         UPDATE exercise
-                         SET reps = reps + ?, sets = sets + ?, time = time + >
+                         UPDATE exercises
+                         SET reps = reps + ?, sets = sets + ?, time = time + ?
                          WHERE id = ?
                         """, (reps, sets, time, existing['id']))
         else:
-            conn.execute("""INSERT INTO exercise (user_id, exercise_name, sets, reps, time)
+            conn.execute("""INSERT INTO exercises (user_id, exercise_name, sets, reps, time)
                          VALUES (?, ?, ?, ?, ?)
                          """, (user_id, exercise_name, sets, reps, time))
             

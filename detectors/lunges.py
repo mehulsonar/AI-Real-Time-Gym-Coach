@@ -1,8 +1,8 @@
 from core.base_exercise import BaseExercise
 
 class LungesDetector(BaseExercise):
-    DOWN_THRESHOLD = 160
-    UP_THRESHOLD = 100
+    DOWN_THRESHOLD = 100
+    UP_THRESHOLD = 160
     MIN_VISIBILITY = 0.7
     BALANCE_TOLERANCE = 0.10
     

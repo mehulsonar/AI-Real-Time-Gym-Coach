@@ -16,6 +16,8 @@ def initial_session_defaults():
 
         # Workout plan (set before starting)
         "workout_started": False,
+        "workout_session_id": 0,
+        "exercise_type": "Squats",
         "plan_exercise": "Squats",
         "plan_sets": 3,
         "plan_reps": 10,

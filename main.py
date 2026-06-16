@@ -1,5 +1,6 @@
 import streamlit as st 
 import os
+import time
 from services.auth.login_wall import login_form
 from services.state.session_defaults import initial_session_defaults
 from services.config.workout_config import EXERCISE_OPTIONS
@@ -7,6 +8,7 @@ from services.ui.style_loader import load_css, inject_local_font, inject_webrtc_
 from services.persistence.exercise_repository import init_db
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
 from services.vision.exercise_video_processor import VideoProcessorClass
+from services.tracking.metrics import sync_metrics_update
 
 
 def main():
@@ -52,12 +54,28 @@ def main():
             start_session_button = st.button("Start Session", width="stretch", key="start_session_button")
 
             if start_session_button:
+                # Set exercise configuration from plan
+                st.session_state.exercise_type = st.session_state.plan_exercise
+                st.session_state.target_sets = int(st.session_state.plan_sets)
+                st.session_state.reps_per_set = int(st.session_state.plan_reps)
+                
+                # Reset workout metrics
+                st.session_state.reps = 0
+                st.session_state.current_set_reps = 0
+                st.session_state.sets_completed = 0
+                st.session_state.workout_complete = False
+                st.session_state.last_saved_sets_completed = 0
+                st.session_state.last_notified_workout_complete = False
+                st.session_state.set_cycle_started_at = time.time()
+                
+                # Increment session ID to force new video processor
+                st.session_state.workout_session_id += 1
                 st.session_state["workout_started"] = True
                 st.rerun()
         else:
-            exercise = st.session_state.get("plan_exercise")
-            sets = st.session_state.get("plan_sets")
-            reps = st.session_state.get("plan_reps")
+            exercise = st.session_state.get("exercise_type")
+            sets = st.session_state.get("target_sets")
+            reps = st.session_state.get("reps_per_set")
 
             st.info(f"**{exercise}** -- {sets} Sets / {reps} Reps")
 
@@ -70,12 +88,12 @@ def main():
         if workout_started:
             st.divider()
 
-            exercise = st.session_state.get("plan_exercise")
+            exercise = st.session_state.get("exercise_type")
             total_reps = st.session_state.get("reps")
             current_set_reps = st.session_state.get("current_set_reps")
-            reps_per_set = st.session_state.get("plan_reps")
+            reps_per_set = st.session_state.get("reps_per_set")
             sets_completed = st.session_state.get("sets_completed")
-            target_sets = st.session_state.get("plan_sets")
+            target_sets = st.session_state.get("target_sets")
 
             st.subheader("Progress")
 
@@ -128,7 +146,7 @@ def main():
         
     else:
         context = webrtc_streamer(
-            key="exercise-analysis",
+            key=f"exercise-analysis-{st.session_state.workout_session_id}",
             mode=WebRtcMode.SENDRECV,
             video_processor_factory=VideoProcessorClass,
             rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
@@ -140,11 +158,15 @@ def main():
         )
 
         if context.video_processor:
-            context.video_processor.set_exercise(st.session_state.get("plan_exercise", "Squats"))
-            latest_metrics = context.video_processor.get_latest_metrics()
-            if latest_metrics:
-                for key, value in latest_metrics.items():
-                    st.session_state[key] = value
+            exercise = st.session_state.get("exercise_type", "Squats")
+            context.video_processor.set_exercise(exercise)
+
+        sync_metrics_update(context)
+
+        # Update more frequently for real-time feedback
+        if context.state.playing:
+            time.sleep(0.1)
+            st.rerun()
 
         inject_webrtc_styles()
         
